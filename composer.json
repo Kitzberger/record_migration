@@ -1,0 +1,17 @@
+{
+	"name": "kitzberger/record-migration",
+	"type": "typo3-cms-extension",
+	"description": "",
+	"homepage": "https://github.com/Kitzberger/record_migration",
+	"license": ["GPL-2.0+"],
+	"keywords": ["TYPO3 CMS"],
+	"require": {
+		"typo3/cms": ">=7.6.0"
+	},
+	"autoload": {
+		"psr-4": {
+			"Kitzberger\\RecordMigration\\": "Classes/"
+		}
+	}
+}
+

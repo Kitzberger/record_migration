@@ -1,0 +1,5 @@
+  # cat=basic; type=string; label=Folder containing migration files: path to where to find migration instruction files (relative to web root)
+folder = ../migrations
+
+  # cat=basic; type=boolean; label=Enable logging? Enables to logging into typo3temp/logs/record-migration.log
+enableLogging = 1
