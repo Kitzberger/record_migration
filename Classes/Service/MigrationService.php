@@ -37,7 +37,11 @@ class MigrationService
 	 */
 	protected $cObj;
 
+	protected $sourceTableFields = '*';
+
 	protected $sourceTable;
+
+	protected $sourceTableJoin = '';
 
 	protected $sourceTableWhere = 'deleted=0';
 
@@ -176,6 +180,12 @@ class MigrationService
 
 			$this->targetTable = $json['target'];
 			$this->sourceTable = $json['source'];
+			if (array_key_exists('sourceFields', $json)) {
+				$this->sourceTableFields = $json['sourceFields'];
+			}
+			if (array_key_exists('sourceJoin', $json)) {
+				$this->sourceTableJoin = $json['sourceJoin'];
+			}
 			if (array_key_exists('sourceWhere', $json)) {
 				$this->sourceTableWhere = $json['sourceWhere'];
 			}
@@ -292,7 +302,14 @@ class MigrationService
 			$pidList = $queryGenerator->getTreeList($pid, $depth, 0, 1);
 			$where .= ' AND pid in (' . $pidList . ')';
 		}
-		return $this->db->exec_SELECTgetRows('*', $this->sourceTable, $this->sourceTableWhere, '', '', $limit ?: '');
+		return $this->db->exec_SELECTgetRows(
+			$this->sourceTableFields,
+			$this->sourceTable . ($this->sourceTableJoin ? ' ' . $this->sourceTableJoin : ''),
+			$this->sourceTableWhere,
+			'',
+			'',
+			$limit ?: ''
+		);
 	}
 
 	/**
