@@ -322,6 +322,10 @@ class MigrationService
 	 */
 	protected function convertRecords($records, $deleteSources)
 	{
+		if (count($records) === 0) {
+			return;
+		}
+
 		try {
 			$this->sqlQuery('START TRANSACTION');
 
