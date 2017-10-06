@@ -60,12 +60,12 @@ class MigrationService
 
 	/* */
 	protected $mapping = [
-		'pid'           => '{pid}',
-		'hidden'        => '{hidden}',
-		'crdate'        => '{crdate}',
-		'tstamp'        => '{tstamp}',
-		'cruser_id'     => '{cruser_id}',
-		'import_source' => NULL,
+		'pid'                             => '{pid}',
+		'hidden'                          => '{hidden}',
+		'crdate'                          => '{crdate}',
+		'tstamp'                          => '{tstamp}',
+		'cruser_id'                       => '{cruser_id}',
+		'tx_recordmigration_importsource' => NULL,
 	];
 
 	protected $iteration = null;
@@ -118,12 +118,12 @@ class MigrationService
 	 */
 	public function addImportSourceColumnToTable($table)
 	{
-		$this->sqlQuery("ALTER TABLE ".$table." ADD COLUMN import_source VARCHAR(255) DEFAULT NULL");
+		$this->sqlQuery("ALTER TABLE ".$table." ADD COLUMN tx_recordmigration_importsource VARCHAR(255) DEFAULT NULL");
 		if ($this->db->sql_error()) {
 			$this->log(LogLevel::ERROR, $this->db->sql_error());
 			return false;
 		}
-		$this->sqlQuery("ALTER TABLE ".$table." ADD UNIQUE import_source (import_source)");
+		$this->sqlQuery("ALTER TABLE ".$table." ADD UNIQUE tx_recordmigration_importsource (tx_recordmigration_importsource)");
 		if ($this->db->sql_error()) {
 			$this->log(LogLevel::ERROR, $this->db->sql_error());
 			return false;
@@ -224,12 +224,12 @@ class MigrationService
 				$this->targetTableHasTstampColumn = false;
 			}
 
-			$ret = $this->sqlQuery('SHOW COLUMNS FROM `'.$this->targetTable.'` LIKE "import_source"');
+			$ret = $this->sqlQuery('SHOW COLUMNS FROM `'.$this->targetTable.'` LIKE "tx_recordmigration_importsource"');
 			if (!$ret->num_rows) {
 				$this->targetTableHasImportSourceColumn = $this->addImportSourceColumnToTable($this->targetTable);
 			}
 
-			$ret = $this->sqlQuery('SHOW COLUMNS FROM `sys_file_reference` LIKE "import_source"');
+			$ret = $this->sqlQuery('SHOW COLUMNS FROM `sys_file_reference` LIKE "tx_recordmigration_importsource"');
 			if (!$ret->num_rows) {
 				$this->sysFileReferenceTableHasImportSourceColumn = $this->addImportSourceColumnToTable('sys_file_reference');
 			}
@@ -327,11 +327,17 @@ class MigrationService
 					$this->log(LogLevel::DEBUG, '- composing target field: ' . $fieldNameTarget);
 
 					if ($fieldConfigSource === null) {
-						if ($fieldNameTarget === 'import_source') {
-							$insertData['import_source'] = $this->sourceTable . ':' . $record['uid'];
+						if ($fieldNameTarget === 'tx_recordmigration_importsource') {
+							if ($record['uid']) {
+								$key = $record['uid'];
+							} else {
+								$key = md5(serialize($record));
+							}
+
+							$insertData['tx_recordmigration_importsource'] = $this->sourceTable . ':' . $key;
 
 							if ($this->iteration) {
-								$insertData['import_source'] .= ':' . $record['iteration_index'];
+								$insertData['tx_recordmigration_importsource'] .= ':' . $record['iteration_index'];
 							}
 						} else {
 							$insertData[$fieldNameTarget] = null;
@@ -460,11 +466,11 @@ class MigrationService
 				// ####################
 
 					$this->log(LogLevel::NOTICE, '---------------------------------------------------------------------');
-					$this->log(LogLevel::NOTICE, 'FAL Relation for ' . $falRelation['import_source']);
+					$this->log(LogLevel::NOTICE, 'FAL Relation for ' . $falRelation['tx_recordmigration_importsource']);
 					$this->log(LogLevel::NOTICE, '---------------------------------------------------------------------');
 					$this->log(LogLevel::INFO, print_r($falRelation, true));
 
-				$record = $this->db->exec_SELECTgetSingleRow('uid', $this->targetTable, 'import_source="'.$falRelation['import_source'].'"');
+				$record = $this->db->exec_SELECTgetSingleRow('uid', $this->targetTable, 'tx_recordmigration_importsource="'.$falRelation['tx_recordmigration_importsource'].'"');
 
 				// Create INSERT and UPDATE data
 				$insertData = [];
@@ -479,7 +485,7 @@ class MigrationService
 				$insertData['tablenames'] = $this->targetTable;
 				$insertData['fieldname'] = $falRelation['field'];
 				$insertData['table_local'] = 'sys_file';
-				$insertData['import_source'] = $falRelation['import_source'];
+				$insertData['tx_recordmigration_importsource'] = $falRelation['tx_recordmigration_importsource'];
 				$updateData['deleted'] = 'deleted=0';
 
 				// Quoting
@@ -617,13 +623,13 @@ class MigrationService
 						break;
 					case 'TYPO3_FAL':
 						if ($this->targetTableHasImportSourceColumn === false) {
-							$logMsg  = "For FAL operations to work the target table needs to have a column called 'import_source'!\n";
+							$logMsg  = "For FAL operations to work the target table needs to have a column called 'tx_recordmigration_importsource'!\n";
 							$logMsg .= "Please run: hammer:preparetable " . $this->targetTable;
 							$this->log(LogLevel::ERROR, '<error>'.$logMsg.'</error>');
 							$this->quit(1);
 						}
 						if ($this->sysFileReferenceTableHasImportSourceColumn === false) {
-							$logMsg  = "For FAL operations to work the sys_file_reference table needs to have a column called 'import_source'!\n";
+							$logMsg  = "For FAL operations to work the sys_file_reference table needs to have a column called 'tx_recordmigration_importsource'!\n";
 							$logMsg .= "Please run: hammer:preparetable sys_file_reference";
 							$this->log(LogLevel::ERROR, '<error>'.$logMsg.'</error>');
 							$this->quit(1);
@@ -638,7 +644,7 @@ class MigrationService
 							}
 							if ($file) {
 								$this->falRelations[] = [
-									'import_source' => $this->sourceTable . ':' . $record['uid'],
+									'tx_recordmigration_importsource' => $this->sourceTable . ':' . $record['uid'],
 									'sys_file' => $file->getUid(),
 									'field' => $fieldNameTarget,
 								];
